@@ -1,9 +1,9 @@
 class Film {
-  final int id;               // int tipine çevirdik
+  final String id; // int → String olarak değişti
   final String title;
   final String description;
   final String posterUrl;
-  bool isFavorite;
+  final bool isFavorite;
 
   Film({
     required this.id,
@@ -14,14 +14,29 @@ class Film {
   });
 
   factory Film.fromJson(Map<String, dynamic> json) {
+  return Film(
+    id: json['id'] ?? '',
+    title: json['Title'] ?? '',  // API’de büyük harflerle "Title"
+    description: json['Plot'] ?? '', // Açıklama için "Plot"
+    posterUrl: json['Poster'] ?? '',  // Burada alan adı Poster
+    isFavorite: json['isFavorite'] ?? false,
+  );
+}
+
+
+  Film copyWith({
+    String? id,
+    String? title,
+    String? description,
+    String? posterUrl,
+    bool? isFavorite,
+  }) {
     return Film(
-      id: json['id'] is int ? json['id'] : int.parse(json['id'].toString()), // id int değilse parse et
-      title: json['title'] as String,
-      description: json['description'] as String,
-      posterUrl: json['posterUrl'] as String,
-      isFavorite: json['isFavorite'] ?? false,
+      id: id ?? this.id,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      posterUrl: posterUrl ?? this.posterUrl,
+      isFavorite: isFavorite ?? this.isFavorite,
     );
   }
-
-  copyWith({required bool isFavorite}) {}
 }

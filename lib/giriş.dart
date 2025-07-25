@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart'; // EKLENDİ
 
 class GirisSayfasi extends StatefulWidget {
   const GirisSayfasi({super.key});
@@ -55,33 +56,26 @@ class _GirisSayfasiState extends State<GirisSayfasi> {
         final Map<String, dynamic> responseData = jsonDecode(response.body);
         final Map<String, dynamic>? data = responseData['data'];
 
-        if (data == null) {
+        final token = data?['token'];
+        final userName = data?['name'];
+
+        if (token != null && userName != null) {
+          // ✅ Token'ı sakla
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('token', token);
+
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Hoşgeldiniz, $userName!")),
+          );
+
+          Navigator.pushReplacementNamed(context, '/anasayfa');
+        } else {
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("Kullanıcı bilgisi alınamadı.")),
           );
-          return;
         }
-
-        final token = data['token'];
-        final userName = data['name'];
-
-        if (token == null || userName == null) {
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Kullanıcı bilgisi alınamadı.")),
-          );
-          return;
-        }
-
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Hoşgeldiniz, $userName!")),
-        );
-
-        // TODO: Token'ı güvenli şekilde sakla, örn: SharedPreferences
-
-        Navigator.pushReplacementNamed(context, '/anasayfa');
       } else if (response.statusCode == 400) {
         final errorData = jsonDecode(response.body);
         final errorMessage = errorData['message'] ?? "Geçersiz giriş bilgileri";
@@ -158,23 +152,7 @@ class _GirisSayfasiState extends State<GirisSayfasi> {
                   TextFormField(
                     controller: emailController,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
-                      labelText: "E-posta",
-                      labelStyle: const TextStyle(color: Colors.white70),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: const BorderSide(color: Colors.white38),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: const BorderSide(color: Colors.blue),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      fillColor: Colors.grey[900],
-                      filled: true,
-                    ),
+                    decoration: _inputDecoration("E-posta"),
                     style: const TextStyle(color: Colors.white),
                     validator: _validateEmail,
                   ),
@@ -182,23 +160,7 @@ class _GirisSayfasiState extends State<GirisSayfasi> {
                   TextFormField(
                     controller: sifreController,
                     obscureText: true,
-                    decoration: InputDecoration(
-                      labelText: "Şifre",
-                      labelStyle: const TextStyle(color: Colors.white70),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: const BorderSide(color: Colors.white38),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: const BorderSide(color: Colors.blue),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      fillColor: Colors.grey[900],
-                      filled: true,
-                    ),
+                    decoration: _inputDecoration("Şifre"),
                     style: const TextStyle(color: Colors.white),
                     validator: _validatePassword,
                   ),
@@ -207,9 +169,7 @@ class _GirisSayfasiState extends State<GirisSayfasi> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       GestureDetector(
-                        onTap: () {
-                          Navigator.pushNamed(context, "/sifremi_unuttum");
-                        },
+                        onTap: () => Navigator.pushNamed(context, "/sifremi_unuttum"),
                         child: const Text(
                           "Şifremi unuttum?",
                           style: TextStyle(
@@ -242,31 +202,20 @@ class _GirisSayfasiState extends State<GirisSayfasi> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _iconButton(Icons.email, () {
-                        print("E-posta ile giriş");
-                      }),
+                      _iconButton(Icons.email, () => print("E-posta ile giriş")),
                       const SizedBox(width: 16),
-                      _iconButton(Icons.apple, () {
-                        print("Apple ile giriş");
-                      }),
+                      _iconButton(Icons.apple, () => print("Apple ile giriş")),
                       const SizedBox(width: 16),
-                      _iconButton(Icons.facebook, () {
-                        print("Facebook ile giriş");
-                      }),
+                      _iconButton(Icons.facebook, () => print("Facebook ile giriş")),
                     ],
                   ),
                   const SizedBox(height: 32),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text(
-                        "Hesabınız yok mu? ",
-                        style: TextStyle(color: Colors.white70),
-                      ),
+                      const Text("Hesabınız yok mu? ", style: TextStyle(color: Colors.white70)),
                       GestureDetector(
-                        onTap: () {
-                          Navigator.pushNamed(context, "/kayit");
-                        },
+                        onTap: () => Navigator.pushNamed(context, "/kayit"),
                         child: const Text(
                           "Kayıt olun",
                           style: TextStyle(
@@ -282,6 +231,24 @@ class _GirisSayfasiState extends State<GirisSayfasi> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: Colors.white70),
+      filled: true,
+      fillColor: Colors.grey[900],
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+      enabledBorder: OutlineInputBorder(
+        borderSide: const BorderSide(color: Colors.white38),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderSide: const BorderSide(color: Colors.blue),
+        borderRadius: BorderRadius.circular(8),
       ),
     );
   }
