@@ -1,19 +1,28 @@
-import '../domain/user.dart';
-
 abstract class UserState {}
 
+// Uygulama ilk yüklendiğinde veya hiçbir işlem yapılmamışken
 class UserInitial extends UserState {}
 
-class UserLoadInProgress extends UserState {}
+// API çağrıları sırasında kullanılan yükleniyor durumu
+class UserLoading extends UserState {}
 
-class UserLoadSuccess extends UserState {
-  final User user;
+// Giriş başarılı olduğunda kullanıcı verileri burada tutulur
+class UserLoggedIn extends UserState {
+  final Map<String, dynamic> user;
 
-  UserLoadSuccess(this.user);
+  UserLoggedIn(this.user);
 }
 
-class UserLoadFailure extends UserState {
-  final String error;
+// Profil özel olarak yüklendiğinde kullanılan durum
+class UserProfileLoaded extends UserState {
+  final Map<String, dynamic> profile;
 
-  UserLoadFailure(this.error);
+  UserProfileLoaded(this.profile);
+}
+
+// Hata olduğunda bu durumla mesaj gösterilir
+class UserError extends UserState {
+  final String message;
+
+  UserError(this.message);
 }

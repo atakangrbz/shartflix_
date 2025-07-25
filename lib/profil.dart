@@ -1,9 +1,15 @@
-import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'dart:io';
-import 'package:image_picker/image_picker.dart';
-import 'package:http/http.dart' as http;
 
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
+
+void main() {
+  runApp(const MyApp());
+}
+
+// Film modeli
 class Film {
   final int id;
   final String title;
@@ -12,8 +18,150 @@ class Film {
   Film({required this.id, required this.title, this.isFavorite = false});
 }
 
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Login + Profil Demo',
+      theme: ThemeData(primarySwatch: Colors.blue),
+      home: const LoginPage(),
+    );
+  }
+}
+
+// -------------------- LOGIN SAYFASI --------------------
+
+class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final _formKey = GlobalKey<FormState>();
+
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+
+  bool _loading = false;
+  String? _errorMessage;
+
+  Future<String> login(String email, String password) async {
+  final response = await http.post(
+    Uri.parse('https://caseapi.servicelabs.tech/user/login'),
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json', // BUNU EKLEDİK
+    },
+    body: jsonEncode({
+      'email': email.trim(),          // BUNU TRIMLEDİK
+      'password': password.trim(),   // BUNU DA
+    }),
+  );
+
+  print('Response code: ${response.statusCode}');
+  print('Response body: ${response.body}');
+
+  if (response.statusCode == 200) {
+    final body = jsonDecode(response.body);
+    final token = body['data']?['token'];
+    if (token == null || token.isEmpty) {
+      throw Exception('Token alınamadı');
+    }
+    return token;
+  } else {
+    final body = jsonDecode(response.body);
+    final message = body['response']?['message'] ?? 'Giriş başarısız';
+    throw Exception(message);
+  }
+}
+
+
+  void _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _loading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final token = await login(emailController.text.trim(), passwordController.text);
+      // Token başarıyla alındıysa Profil sayfasına geç
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => Profil(authToken: token),
+        ),
+      );
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        appBar: AppBar(title: const Text("Giriş Yap")),
+        body: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  TextFormField(
+                    controller: emailController,
+                    decoration: const InputDecoration(labelText: 'E-posta'),
+                    keyboardType: TextInputType.emailAddress,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) return 'E-posta giriniz';
+                      if (!value.contains('@')) return 'Geçerli e-posta giriniz';
+                      return null;
+                    },
+                  ),
+                  TextFormField(
+                    controller: passwordController,
+                    decoration: const InputDecoration(labelText: 'Şifre'),
+                    obscureText: true,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) return 'Şifre giriniz';
+                      if (value.length < 6) return 'Şifre en az 6 karakter olmalı';
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  if (_errorMessage != null)
+                    Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: _loading ? null : _submit,
+                    child: _loading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text('Giriş Yap'),
+                  ),
+                ],
+              )),
+        ));
+  }
+}
+
+// -------------------- PROFIL SAYFASI --------------------
+
 class Profil extends StatefulWidget {
-  const Profil({super.key});
+  final String authToken;
+
+  const Profil({super.key, required this.authToken});
 
   @override
   State<Profil> createState() => _ProfilState();
@@ -27,8 +175,7 @@ class _ProfilState extends State<Profil> {
   File? _profilResmi;
   final ImagePicker _picker = ImagePicker();
 
-  // Buraya gerçek token'ı koymalısın
-  final String authToken = "YOUR_JWT_TOKEN_HERE";
+  String? hataMesaji;
 
   List<Film> favoriFilmler = [
     Film(id: 1, title: "Film 1", isFavorite: true),
@@ -48,7 +195,7 @@ class _ProfilState extends State<Profil> {
     final response = await http.get(
       Uri.parse("https://caseapi.servicelabs.tech/user/profile"),
       headers: {
-        'Authorization': 'Bearer $authToken',
+        'Authorization': 'Bearer ${widget.authToken}',
         'Accept': 'application/json',
       },
     );
@@ -58,29 +205,44 @@ class _ProfilState extends State<Profil> {
 
     if (response.statusCode == 200) {
       final Map<String, dynamic> decoded = jsonDecode(response.body);
-      print("Decoded JSON: $decoded");
       final Map<String, dynamic>? userData = decoded["data"];
-      print("User data: $userData");
 
       if (userData != null) {
+        final String emailFromApi = userData["email"] ?? "";
+        final String nameFromApi = userData["name"] ?? "";
+
+        String nameToUse = nameFromApi;
+        if (nameToUse.isEmpty && emailFromApi.contains("@")) {
+          final prefix = emailFromApi.split("@").first;
+          nameToUse = prefix[0].toUpperCase() + prefix.substring(1);
+        }
+
         setState(() {
-          kullaniciAdi = userData["name"] ?? "";
-          email = userData["email"] ?? "";
+          kullaniciAdi = nameToUse;
+          email = emailFromApi;
           photoUrl = userData["photoUrl"];
+          hataMesaji = null;
         });
       } else {
-        print("Kullanıcı verisi bulunamadı.");
+        setState(() {
+          hataMesaji = "Kullanıcı verisi bulunamadı.";
+        });
       }
     } else if (response.statusCode == 401) {
-      print("Yetkisiz erişim - Lütfen giriş yapınız.");
+      setState(() {
+        hataMesaji = "Yetkisiz erişim - Lütfen giriş yapınız.";
+      });
     } else {
-      print("Bir hata oluştu: ${response.statusCode}");
+      setState(() {
+        hataMesaji = "Bir hata oluştu: ${response.statusCode}";
+      });
     }
   } catch (e) {
-    print("Hata: $e");
+    setState(() {
+      hataMesaji = "İstek sırasında hata: $e";
+    });
   }
 }
-
 
 
   Future<void> _resimSec() async {
@@ -88,19 +250,20 @@ class _ProfilState extends State<Profil> {
     if (resim != null) {
       setState(() {
         _profilResmi = File(resim.path);
-        photoUrl = null; // Yeni resim seçilince eski link sıfırlanır
+        photoUrl = null;
       });
-      // Burada seçilen resmi API'ye yüklemek için ek metod yazabilirsin
+
+      // TODO: Seçilen resmi API'ye yüklemek için fonksiyon yazılabilir
     }
   }
 
   void _handleMenuSelection(String value) {
     if (value == 'teklif') {
       print("Sınırlı Teklif seçildi");
-      // Burada sınırlı teklif bottom sheet açılabilir
+      // Sınırlı teklif için bottom sheet veya başka UI açılabilir
     } else if (value == 'detay') {
       print("Profil Detayı seçildi");
-      // Profil detay sayfasına geçiş vs.
+      // Profil detay sayfasına yönlendirme yapılabilir
     }
   }
 
@@ -132,7 +295,8 @@ class _ProfilState extends State<Profil> {
                     ? FileImage(_profilResmi!)
                     : (photoUrl != null && photoUrl!.isNotEmpty
                         ? NetworkImage(photoUrl!)
-                        : const AssetImage("assets/default_profile.png") as ImageProvider),
+                        : const AssetImage("assets/default_profile.png")
+                            as ImageProvider),
                 child: Align(
                   alignment: Alignment.bottomRight,
                   child: CircleAvatar(
@@ -144,14 +308,23 @@ class _ProfilState extends State<Profil> {
               ),
             ),
             const SizedBox(height: 20),
-            Text(
-              kullaniciAdi.isNotEmpty ? kullaniciAdi : "Yükleniyor...",
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            Text(
-              email.isNotEmpty ? email : "",
-              style: const TextStyle(color: Colors.grey),
-            ),
+            hataMesaji != null
+                ? Text(
+                    hataMesaji!,
+                    style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                  )
+                : Column(
+                    children: [
+                      Text(
+                        kullaniciAdi.isNotEmpty ? kullaniciAdi : "Yükleniyor...",
+                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        email.isNotEmpty ? email : "",
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                    ],
+                  ),
             const SizedBox(height: 30),
             const Align(
               alignment: Alignment.centerLeft,

@@ -14,7 +14,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
   final List<Widget> _pages = [
     const Anasayfa(),
-    const Profil(),
+    const Profil(authToken: '',),
   ];
 
   @override

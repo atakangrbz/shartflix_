@@ -1,23 +1,44 @@
+// user_bloc.dart
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'user_event.dart';
 import 'user_state.dart';
 import '../data/user_repository.dart';
 
 class UserBloc extends Bloc<UserEvent, UserState> {
-  final UserRepository repository;
+  final UserRepository userRepository;
 
-  UserBloc({required this.repository}) : super(UserInitial()) {
-    on<FetchUserProfile>(_onFetchUserProfile);
+  UserBloc({required this.userRepository}) : super(UserInitial()) {
+    // LOGIN işlemi
+    on<FetchUserProfile>((event, emit) async {
+  emit(UserLoading());
+  try {
+    final profile = await userRepository.getProfile(event.token);
+    emit(UserProfileLoaded(profile));
+  } catch (e) {
+    emit(UserError('Profil alınamadı'));
   }
+});
 
-  Future<void> _onFetchUserProfile(FetchUserProfile event, Emitter<UserState> emit) async {
-    emit(UserLoadInProgress());
+    on<LoginUser>((event, emit) async {
+      emit(UserLoading());
+      try {
+        final user = await userRepository.login(event.email, event.password);
+        emit(UserLoggedIn(user));
+      } catch (e) {
+        emit(UserError('Giriş başarısız'));
+      }
+    });
 
-    try {
-      final user = await repository.fetchUserProfile();
-      emit(UserLoadSuccess(user));
-    } catch (e) {
-      emit(UserLoadFailure(e.toString()));
-    }
+    // REGISTER işlemi — BUNU EKLE!
+    on<RegisterUser>((event, emit) async {
+      emit(UserLoading());
+      try {
+        final user = await userRepository.register(event.name, event.email, event.password);
+        emit(UserLoggedIn(user));
+      } catch (e) {
+        emit(UserError('Kayıt başarısız'));
+      }
+    });
   }
 }
