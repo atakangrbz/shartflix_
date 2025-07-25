@@ -43,7 +43,7 @@ class FilmBloc extends Bloc<FilmEvent, FilmState> {
 
   Future<void> _onToggleFavorite(FilmToggleFavorite event, Emitter<FilmState> emit) async {
     try {
-      await repository.toggleFavorite(event.filmId);
+      await repository.toggleFavorite(event.filmId as String);
 
       films = films.map((film) {
         if (film.id == event.filmId) {

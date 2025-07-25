@@ -1,19 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../bloc/user_bloc.dart';
 import '../bloc/user_event.dart';
 import '../bloc/user_state.dart';
 
-class UserProfileScreen extends StatelessWidget {
-  final String token; // Giriş yapıldıktan sonra gelen token
+class UserProfileScreen extends StatefulWidget {
+  const UserProfileScreen({super.key});
 
-  const UserProfileScreen({super.key, required this.token});
+  @override
+  State<UserProfileScreen> createState() => _UserProfileScreenState();
+}
+
+class _UserProfileScreenState extends State<UserProfileScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _loadTokenAndFetchProfile();
+  }
+
+  Future<void> _loadTokenAndFetchProfile() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    if (token != null && context.mounted) {
+      context.read<UserBloc>().add(FetchUserProfile(token: token));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Bloc'u tekrar oluşturmana gerek yok, çünkü main.dart'te MultiBlocProvider ile verildi
-    context.read<UserBloc>().add(FetchUserProfile(token: token));
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profil'),

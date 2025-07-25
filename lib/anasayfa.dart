@@ -1,7 +1,11 @@
+// Kodun geri kalani sabit, sadece favori butonuna tiklandiginda token al ve API'ye istegi gonder
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 import 'bloc/film_bloc.dart';
 import 'bloc/film_event.dart';
@@ -73,7 +77,32 @@ class _AnasayfaState extends State<Anasayfa> {
   }
 }
 
-/// Bu fonksiyon, SVG ve diğer resim formatlarını destekler.
+Future<void> addToFavorites(String filmId) async {
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('token');
+
+  if (token == null || token.isEmpty) {
+    print('Token bulunamadı.');
+    return;
+  }
+
+  final url = Uri.parse('https://caseapi.servicelabs.tech/movie/favorite/$filmId');
+
+  final response = await http.post(
+    url,
+    headers: {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    },
+  );
+
+  if (response.statusCode == 200) {
+    print("Favorilere eklendi: $filmId");
+  } else {
+    print("Favori ekleme hatası: ${response.statusCode} - ${response.body}");
+  }
+}
+
 Widget getImageWidget(String? url) {
   if (url == null || url.isEmpty) {
     return const Column(
@@ -132,7 +161,6 @@ Widget getImageWidget(String? url) {
   );
 }
 
-
 class FilmList extends StatefulWidget {
   const FilmList({super.key});
 
@@ -171,10 +199,6 @@ class _FilmListState extends State<FilmList> {
     super.dispose();
   }
 
-  void _favoriDegistir(BuildContext context, int filmId) {
-    context.read<FilmBloc>().add(FilmToggleFavorite(filmId));
-  }
-
   void _filmSec(int filmId) {
     setState(() {
       _selectedFilmId = filmId;
@@ -188,87 +212,135 @@ class _FilmListState extends State<FilmList> {
         if (state is FilmLoadInProgress && state.props.isEmpty) {
           return const Center(child: CircularProgressIndicator(color: Colors.white));
         } else if (state is FilmLoadSuccess) {
-          final Film? selectedFilm = state.films.isNotEmpty
-              ? state.films.firstWhere(
-                  (film) => film.id == _selectedFilmId,
-                  orElse: () => state.films.first,
-                )
-              : null;
-
-          return Stack(
+          return Column(
             children: [
-              GridView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.all(8),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 8,
-                  crossAxisSpacing: 8,
-                  childAspectRatio: 0.75,
-                ),
-                itemCount: state.films.length + (state.hasMore ? 1 : 0),
-                itemBuilder: (context, index) {
-                  if (index < state.films.length) {
+              SizedBox(
+                height: 180,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: state.films.length > 10 ? 10 : state.films.length,
+                  itemBuilder: (context, index) {
                     final film = state.films[index];
-                    return GestureDetector(
-                      onTap: () => _filmSec(film.id as int),
-                      child: Card(
-                        color: Colors.grey[900],
-                        elevation: 4,
-                        shape: RoundedRectangleBorder(
-                          side: BorderSide(
-                            color: film.id == _selectedFilmId ? Colors.blueAccent : Colors.transparent,
-                            width: 2,
+                    return Container(
+                      width: 120,
+                      margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: getImageWidget(film.posterUrl),
+                            ),
                           ),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Column(
-                            children: [
-                              Expanded(
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: getImageWidget(film.posterUrl),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                film.title,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
+                          const SizedBox(height: 6),
+                          Text(
+                            film.title,
+                            style: const TextStyle(color: Colors.white, fontSize: 12),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              Expanded(
+                child: GridView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.all(8),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 8,
+                    crossAxisSpacing: 8,
+                    childAspectRatio: 0.75,
+                  ),
+                  itemCount: state.films.length + (state.hasMore ? 1 : 0),
+                  
+              itemBuilder: (context, index) {
+  if (index < state.films.length) {
+    final film = state.films[index];
+    return GestureDetector(
+      onTap: () => _filmSec(film.id), // ✅ artık direkt string olarak veriyoruz
+      child: Card(
+        color: Colors.grey[900],
+        elevation: 4,
+        shape: RoundedRectangleBorder(
+          side: BorderSide(
+            color: film.id == _selectedFilmId
+                ? Colors.blueAccent
+                : Colors.transparent,
+            width: 2,
+          ),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            children: [
+              Expanded(
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: getImageWidget(film.posterUrl),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 4,
+                      right: 4,
+                      child: GestureDetector(
+                        onTap: () {
+                          context
+                              .read<FilmBloc>()
+                              .add(FilmToggleFavorite(film.id)); // ✅ id string olarak kullanıldı
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: const BoxDecoration(
+                            color: Colors.black54,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            film.isFavorite ? Icons.favorite : Icons.favorite_border,
+                            color: film.isFavorite ? Colors.red : Colors.white,
+                            size: 20,
                           ),
                         ),
                       ),
-                    );
-                  } else {
-                    return const Center(child: CircularProgressIndicator(color: Colors.white));
-                  }
-                },
-              ),
-
-              if (selectedFilm != null)
-                Positioned(
-                  bottom: 20,
-                  right: 20,
-                  child: FloatingActionButton(
-                    onPressed: () => _favoriDegistir(context, selectedFilm.id as int),
-                    backgroundColor: selectedFilm.isFavorite ? Colors.red : Colors.grey,
-                    child: Icon(
-                      selectedFilm.isFavorite ? Icons.favorite : Icons.favorite_border,
-                      color: Colors.white,
-                      size: 30,
                     ),
-                    tooltip: selectedFilm.isFavorite ? "Beğeniyi kaldır" : "Beğen",
-                  ),
+                  ],
                 ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                film.title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  } else {
+    return const Center(child: CircularProgressIndicator(color: Colors.white));
+  }
+},
+
+
+
+
+
+                ),
+              ),
             ],
           );
         } else if (state is FilmLoadFailure) {

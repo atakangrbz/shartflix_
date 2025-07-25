@@ -13,13 +13,21 @@ class KayitSayfasi extends StatefulWidget {
 
 class _KayitSayfasiState extends State<KayitSayfasi> {
   final _formKey = GlobalKey<FormState>();
-
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController passwordAgainController = TextEditingController();
 
+  bool _termsAccepted = false;
+
   void _kayitOl(BuildContext context) {
+    if (!_termsAccepted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Lütfen kullanıcı sözleşmesini kabul ediniz.")),
+      );
+      return;
+    }
+
     if (_formKey.currentState!.validate()) {
       final name = nameController.text.trim();
       final email = emailController.text.trim();
@@ -56,8 +64,6 @@ class _KayitSayfasiState extends State<KayitSayfasi> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text("Kayıt başarılı! Hoş geldin, $name")),
             );
-
-            // TODO: Token saklama işlemini burada yapabilirsiniz
 
             Navigator.pushReplacementNamed(context, "/");
           }
@@ -115,8 +121,65 @@ class _KayitSayfasiState extends State<KayitSayfasi> {
                       style: const TextStyle(color: Colors.white),
                       validator: _validatePasswordAgain,
                     ),
+                    const SizedBox(height: 16),
+
+                    // Kullanıcı Sözleşmesi
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Checkbox(
+                          value: _termsAccepted,
+                          onChanged: (value) {
+                            setState(() {
+                              _termsAccepted = value ?? false;
+                            });
+                          },
+                          checkColor: Colors.black,
+                          activeColor: Colors.white,
+                        ),
+                        Expanded(
+                          child: Wrap(
+                            children: [
+                              const Text("Kayıt olarak ", style: TextStyle(color: Colors.white70)),
+                              GestureDetector(
+                                onTap: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (_) => AlertDialog(
+                                      title: const Text("Kullanıcı Sözleşmesi"),
+                                      content: const SingleChildScrollView(
+                                        child: Text(
+                                          "Buraya kullanıcı sözleşmesinin içeriği yazılacak. Bu metni dilediğin kadar uzatabilir, detaylı açıklamalar yapabilirsin. Kullanıcı bu sözleşmeyi okuyarak kabul etmiş olur.",
+                                        ),
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(context),
+                                          child: const Text("Kapat"),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                                child: const Text(
+                                  "Kullanıcı Sözleşmesi’ni",
+                                  style: TextStyle(
+                                    color: Colors.blueAccent,
+                                    decoration: TextDecoration.underline,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              const Text(" okudum ve kabul ediyorum.", style: TextStyle(color: Colors.white70)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+
                     const SizedBox(height: 24),
 
+                    // Kayıt butonu
                     BlocBuilder<UserBloc, UserState>(
                       builder: (context, state) {
                         final isLoading = state is UserLoading;
@@ -138,6 +201,22 @@ class _KayitSayfasiState extends State<KayitSayfasi> {
                     ),
 
                     const SizedBox(height: 24),
+
+                    // Sosyal Giriş Butonları
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _iconButton(Icons.email, () => print("E-posta ile kayıt")),
+                        const SizedBox(width: 16),
+                        _iconButton(Icons.apple, () => print("Apple ile kayıt")),
+                        const SizedBox(width: 16),
+                        _iconButton(Icons.facebook, () => print("Facebook ile kayıt")),
+                      ],
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // Giriş yap linki
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -172,6 +251,22 @@ class _KayitSayfasiState extends State<KayitSayfasi> {
       filled: true,
       fillColor: Colors.white10,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+    );
+  }
+
+  Widget _iconButton(IconData icon, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: Colors.grey[850],
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(icon, color: Colors.white, size: 28),
+      ),
     );
   }
 

@@ -62,37 +62,38 @@ class FilmRepository {
   }
 
   /// Favori işlemi
-  Future<void> toggleFavorite(int filmId) async {
-    final uri = Uri.https(baseUrl, '/movie/favorite/$filmId');
+  Future<void> toggleFavorite(String filmId) async {
+  final uri = Uri.https(baseUrl, '/movie/favorite/$filmId');
 
-    if (token == null || token!.isEmpty) {
-      throw Exception('[FilmRepository] Favori işlemi için token eksik.');
-    }
-
-    final response = await http.post(
-      uri,
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-    );
-
-    if (kDebugMode) {
-      print('[FilmRepository] POST ${uri.toString()}');
-      print('[FilmRepository] Status Code: ${response.statusCode}');
-      print('[FilmRepository] Response Body: ${response.body}');
-    }
-
-    if (response.statusCode == 200) {
-      return;
-    } else if (response.statusCode == 401) {
-      throw Exception('[FilmRepository] Favori: Yetkisiz işlem (401).');
-    } else if (response.statusCode == 404) {
-      throw Exception('[FilmRepository] Film bulunamadı (404).');
-    } else if (response.statusCode == 400) {
-      throw Exception('[FilmRepository] Favori için geçersiz istek (400): ${response.body}');
-    } else {
-      throw Exception('[FilmRepository] Favori güncellenemedi: ${response.statusCode}');
-    }
+  if (token == null || token!.isEmpty) {
+    throw Exception('[FilmRepository] Favori işlemi için token eksik.');
   }
+
+  final response = await http.post(
+    uri,
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': 'Bearer $token',
+    },
+  );
+
+  if (kDebugMode) {
+    print('[FilmRepository] POST ${uri.toString()}');
+    print('[FilmRepository] Status Code: ${response.statusCode}');
+    print('[FilmRepository] Response Body: ${response.body}');
+  }
+
+  if (response.statusCode == 200) return;
+
+  if (response.statusCode == 401) {
+    throw Exception('[FilmRepository] Favori: Yetkisiz işlem (401).');
+  } else if (response.statusCode == 404) {
+    throw Exception('[FilmRepository] Film bulunamadı (404).');
+  } else if (response.statusCode == 400) {
+    throw Exception('[FilmRepository] Favori için geçersiz istek (400): ${response.body}');
+  } else {
+    throw Exception('[FilmRepository] Favori güncellenemedi: ${response.statusCode}');
+  }
+}
+
 }
