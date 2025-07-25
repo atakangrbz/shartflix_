@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:shartflix_/giri%C5%9F.dart';
-import 'home_page.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';  // flutterfire configure ile oluşan dosya
 
-void main() {
+import 'package:shartflix_/giriş.dart';
+import 'package:shartflix_/kayıt.dart';
+import 'package:shartflix_/home_page.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
 
@@ -17,8 +22,8 @@ class MyApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const GirisSayfasi(),
-        '/kayit': (context) => const GirisSayfasi(),
-        '/anasayfa': (context) => const HomePage(), // Burada HomePage
+        '/kayit': (context) => const KayitSayfasi(),
+        '/anasayfa': (context) => const HomePage(), // Ana sayfa
       },
     );
   }

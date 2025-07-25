@@ -17,34 +17,45 @@ class FilmBloc extends Bloc<FilmEvent, FilmState> {
   }
 
   Future<void> _onFetchRequested(FilmFetchRequested event, Emitter<FilmState> emit) async {
-    if (isFetching) return;
-    isFetching = true;
+  if (isFetching) return;
+  isFetching = true;
 
-    if (event.page == 1) {
-      films.clear();
-    }
-
-    try {
-      emit(FilmLoadInProgress());
-      final newFilms = await repository.fetchFilms(page: event.page, pageSize: pageSize);
-      films.addAll(newFilms);
-      final hasMore = newFilms.length == pageSize;
-      currentPage = event.page;
-      emit(FilmLoadSuccess(films, hasMore: hasMore));
-    } catch (e) {
-      emit(FilmLoadFailure(e.toString()));
-    }
-
-    isFetching = false;
+  if (event.page == 1) {
+    films.clear();
   }
+
+  try {
+    emit(FilmLoadInProgress());
+    final newFilms = await repository.fetchFilms(page: event.page, pageSize: pageSize);
+    films.addAll(newFilms);
+
+    // id'ye göre sıralama (String ise string sıralaması, int ise int sıralaması)
+    films.sort((a, b) => a.id.compareTo(b.id));
+
+    final hasMore = newFilms.length == pageSize;
+    currentPage = event.page;
+    emit(FilmLoadSuccess(films, hasMore: hasMore));
+  } catch (e) {
+    emit(FilmLoadFailure(e.toString()));
+  }
+
+  isFetching = false;
+}
+
 
   Future<void> _onToggleFavorite(FilmToggleFavorite event, Emitter<FilmState> emit) async {
     try {
       await repository.toggleFavorite(event.filmId);
 
       films = films.map((film) {
-        if (film.id == event.filmId) {
-          return Film(id: film.id, title: film.title, isFavorite: !film.isFavorite);
+        if (film.id == event.filmId) {  // artık film.id ve event.filmId aynı tip (int)
+          return Film(
+            id: film.id,
+            title: film.title,
+            description: film.description,
+            posterUrl: film.posterUrl,
+            isFavorite: !film.isFavorite,
+          );
         }
         return film;
       }).toList();
