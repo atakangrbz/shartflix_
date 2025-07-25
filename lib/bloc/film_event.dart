@@ -15,7 +15,7 @@ class FilmFetchRequested extends FilmEvent {
 }
 
 class FilmToggleFavorite extends FilmEvent {
-  final int filmId;
+  final String filmId;
 
   FilmToggleFavorite(this.filmId);
 

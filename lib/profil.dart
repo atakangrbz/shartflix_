@@ -12,6 +12,7 @@ class ProfilSayfasi extends StatefulWidget {
 
 class _ProfilSayfasiState extends State<ProfilSayfasi> {
   Map<String, dynamic>? profile;
+  List<dynamic> favoriteFilms = [];
   bool isLoading = true;
   String? error;
 
@@ -33,20 +34,29 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
       return;
     }
 
-    final response = await http.get(
-      Uri.parse("https://caseapi.servicelabs.tech/user/profile"),
-      headers: {"Authorization": "Bearer $token"},
-    );
+    try {
+      final response = await http.get(
+        Uri.parse("https://caseapi.servicelabs.tech/user/profile"),
+        headers: {"Authorization": "Bearer $token"},
+      );
 
-    final body = jsonDecode(response.body);
-    if (response.statusCode == 200 && body['data'] != null) {
+      final body = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && body['data'] != null) {
+        setState(() {
+          profile = body['data'];
+          favoriteFilms = body['data']['favoriteMovies'] ?? [];
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          error = body['response']?['message'] ?? 'Profil verisi alınamadı';
+          isLoading = false;
+        });
+      }
+    } catch (e) {
       setState(() {
-        profile = body['data'];
-        isLoading = false;
-      });
-    } else {
-      setState(() {
-        error = body['response']?['message'] ?? 'Profil verisi alınamadı';
+        error = 'Hata oluştu: $e';
         isLoading = false;
       });
     }
@@ -69,7 +79,7 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
 
     return Scaffold(
       appBar: AppBar(title: const Text("Profil")),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -79,7 +89,29 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
             const SizedBox(height: 8),
             Text("E-posta: ${profile!['email'] ?? 'Yok'}",
                 style: const TextStyle(fontSize: 18)),
-            // Diğer alanlar eklenebilir
+            const SizedBox(height: 20),
+            const Text("Favori Filmler:",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            ...favoriteFilms.map((film) {
+              final imageUrl = film['image']?.toString().replaceFirst("http://", "https://") ?? '';
+              return Card(
+                margin: const EdgeInsets.symmetric(vertical: 8),
+                child: ListTile(
+                  leading: imageUrl.isNotEmpty
+                      ? Image.network(
+                          imageUrl,
+                          width: 50,
+                          height: 70,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image),
+                        )
+                      : const Icon(Icons.movie),
+                  title: Text(film['title'] ?? 'Başlık yok'),
+                  subtitle: Text("ID: ${film['id']}"),
+                ),
+              );
+            }).toList(),
           ],
         ),
       ),

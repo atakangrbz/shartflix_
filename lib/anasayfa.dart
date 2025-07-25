@@ -222,27 +222,55 @@ class _FilmListState extends State<FilmList> {
                   itemBuilder: (context, index) {
                     final film = state.films[index];
                     return Container(
-                      width: 120,
-                      margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
-                      child: Column(
-                        children: [
-                          Expanded(
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: getImageWidget(film.posterUrl),
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            film.title,
-                            style: const TextStyle(color: Colors.white, fontSize: 12),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    );
+  width: 120,
+  margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+  child: Column(
+    children: [
+      Expanded(
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: getImageWidget(film.posterUrl),
+              ),
+            ),
+            Positioned(
+              bottom: 4,
+              right: 4,
+              child: GestureDetector(
+                onTap: () {
+                  context.read<FilmBloc>().add(FilmToggleFavorite(film.id));
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    color: Colors.black54,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    film.isFavorite ? Icons.favorite : Icons.favorite_border,
+                    color: film.isFavorite ? Colors.red : Colors.white,
+                    size: 18,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 6),
+      Text(
+        film.title,
+        style: const TextStyle(color: Colors.white, fontSize: 12),
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.center,
+      ),
+    ],
+  ),
+);
+
                   },
                 ),
               ),
@@ -262,7 +290,7 @@ class _FilmListState extends State<FilmList> {
   if (index < state.films.length) {
     final film = state.films[index];
     return GestureDetector(
-      onTap: () => _filmSec(film.id), // ✅ artık direkt string olarak veriyoruz
+      onTap: () => _filmSec(film.id as int), // ✅ artık direkt string olarak veriyoruz
       child: Card(
         color: Colors.grey[900],
         elevation: 4,
