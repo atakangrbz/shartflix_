@@ -14,7 +14,7 @@ class FilmLoadSuccess extends FilmState {
   final List<Film> films;
   final bool hasMore;
 
-  FilmLoadSuccess(this.films, {this.hasMore = true});
+  FilmLoadSuccess(this.films, {this.hasMore = true, required int currentPage});
 
   @override
   List<Object?> get props => [films, hasMore];

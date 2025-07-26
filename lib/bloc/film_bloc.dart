@@ -20,20 +20,17 @@ class FilmBloc extends Bloc<FilmEvent, FilmState> {
     if (isFetching) return;
     isFetching = true;
 
-    if (event.page == 1) {
-      films.clear();
-    }
+    if (event.page == 1) films.clear();
 
     try {
       emit(FilmLoadInProgress());
       final newFilms = await repository.fetchFilms(page: event.page, pageSize: pageSize);
       films.addAll(newFilms);
-
       films.sort((a, b) => a.id.compareTo(b.id));
 
       final hasMore = newFilms.length == pageSize;
       currentPage = event.page;
-      emit(FilmLoadSuccess(films, hasMore: hasMore));
+      emit(FilmLoadSuccess(films, hasMore: hasMore, currentPage: currentPage));
     } catch (e) {
       emit(FilmLoadFailure(e.toString()));
     }
@@ -43,7 +40,7 @@ class FilmBloc extends Bloc<FilmEvent, FilmState> {
 
   Future<void> _onToggleFavorite(FilmToggleFavorite event, Emitter<FilmState> emit) async {
     try {
-      await repository.toggleFavorite(event.filmId as String);
+      await repository.toggleFavorite(event.filmId.toString());
 
       films = films.map((film) {
         if (film.id == event.filmId) {
@@ -52,12 +49,9 @@ class FilmBloc extends Bloc<FilmEvent, FilmState> {
         return film;
       }).toList();
 
-      emit(FilmLoadSuccess(films, hasMore: true));
+      emit(FilmLoadSuccess(films, hasMore: true, currentPage: currentPage));
     } catch (e) {
       emit(FilmLoadFailure(e.toString()));
     }
   }
 }
-
-
-

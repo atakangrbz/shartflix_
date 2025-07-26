@@ -1,90 +1,103 @@
 import 'package:flutter/material.dart';
+import 'package:shartflix_/screens/kesfet.dart';
 import 'anasayfa.dart';
 import 'profil.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final String token;
+  const HomePage({super.key, required this.token});
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
+class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
 
-  final List<Widget> _pages = [
-    const Anasayfa(token: '',),
-    const ProfilSayfasi(authToken: '',),
-  ];
+  late final List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      Anasayfa(token: widget.token),
+      Kesfet(token: widget.token),
+      ProfilSayfasi(authToken: widget.token),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true,
       body: _pages[_selectedIndex],
       bottomNavigationBar: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(24),
-            topRight: Radius.circular(24),
-          ),
-          // BoxShadow kaldırıldı, böylece alt çizgi görünmez
+        margin: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+        decoration: const BoxDecoration(
+          color: Colors.transparent,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: List.generate(2, (index) {
+          children: List.generate(3, (index) {
             bool isActive = _selectedIndex == index;
 
-            return GestureDetector(
-              onTap: () {
-                setState(() {
-                  _selectedIndex = index;
-                });
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeOut,
-                padding: EdgeInsets.symmetric(
-                  vertical: 8,
-                  horizontal: isActive ? 24 : 16,
+            if (index == 1) {
+              // 🔍 Ortadaki Keşfet butonu
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _selectedIndex = index;
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 1.5),
+                  ),
+                  child: Icon(
+                    Icons.explore,
+                    color: isActive ? Colors.white : Colors.white70,
+                    size: 26,
+                  ),
                 ),
-                decoration: BoxDecoration(
-                  color: isActive ? Colors.blue.shade100 : Colors.transparent,
-                  borderRadius: BorderRadius.circular(40),
-                  boxShadow: isActive
-                      ? [
-                          BoxShadow(
-                            color: Colors.blue.withOpacity(0.3),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          )
-                        ]
-                      : [],
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      index == 0 ? Icons.home : Icons.person,
-                      size: isActive ? 30 : 24,
-                      color: isActive ? Colors.blue : Colors.grey[600],
-                    ),
-                    if (isActive)
-                      Padding(
-                        padding: const EdgeInsets.only(left: 8),
-                        child: Text(
-                          index == 0 ? "Anasayfa" : "Profil",
-                          style: TextStyle(
-                            color: Colors.blue,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
+              );
+            } else {
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _selectedIndex = index;
+                  });
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.white, width: 1.5),
+                    borderRadius: BorderRadius.circular(32),
+                    color: Colors.transparent,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        index == 0 ? Icons.home : Icons.person,
+                        size: 24,
+                        color: isActive ? Colors.white : Colors.white70,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        index == 0 ? "Anasayfa" : "Profil",
+                        style: TextStyle(
+                          color: isActive ? Colors.white : Colors.white70,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            );
+              );
+            }
           }),
         ),
       ),
