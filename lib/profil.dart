@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:path/path.dart' as path;
+import 'package:shartflix_/film_sayfasi.dart';
 import 'package:shartflix_/fotograf.dart';
 import 'package:shartflix_/sinirli_teklif.dart';
 
@@ -413,16 +414,24 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
                       crossAxisSpacing: 10,
                       childAspectRatio: 0.50,
                     ),
-                    itemBuilder: (context, index) {
-  final film = favoriteFilms[index]; // direkt olarak kullan
-
+                   itemBuilder: (context, index) {
+  final film = favoriteFilms[index];
   final imageUrl = (film['Poster'] ?? '').toString().replaceFirst("http://", "https://");
   final filmTitle = film['Title'] ?? 'Başlık yok';
   final filmDescription = film['Plot'] ?? 'Açıklama yok';
 
   return GestureDetector(
     onTap: () {
-      toggleFavorite(film['id'].toString());
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => FilmSayfasi(
+            title: filmTitle,
+            description: filmDescription,
+            posterUrl: imageUrl,
+          ),
+        ),
+      );
     },
     child: Container(
       decoration: BoxDecoration(
@@ -476,6 +485,7 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
     ),
   );
 }
+
 
                   )
           ],

@@ -167,19 +167,21 @@ Widget build(BuildContext context) {
                     const SizedBox(height: 16),
 
                     Align(
-                      alignment: Alignment.centerLeft,
-                      child: GestureDetector(
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Şifre sıfırlama henüz eklenmedi.")),
-                          );
-                        },
-                        child: const Text(
-                          "Şifremi unuttum?",
-                          style: TextStyle(color: Colors.blue, decoration: TextDecoration.underline),
-                        ),
-                      ),
-                    ),
+  alignment: Alignment.centerLeft,
+  child: GestureDetector(
+    onTap: () {
+      Navigator.pushNamed(context, '/sifre'); // ✅ Yeni şifre sayfasına geçiş
+    },
+    child: const Text(
+      "Şifremi unuttum?",
+      style: TextStyle(
+        color: Colors.blue,
+        decoration: TextDecoration.underline,
+      ),
+    ),
+  ),
+),
+
                     const SizedBox(height: 24),
 
                     SizedBox(

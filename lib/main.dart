@@ -8,6 +8,7 @@ import 'package:shartflix_/home_page.dart';
 import 'package:shartflix_/profil.dart';
 import 'package:shartflix_/screens/user_profile_screen.dart';
 import 'package:shartflix_/screens/kesfet.dart';
+import 'package:shartflix_/sifre.dart';
 
 import 'bloc/user_bloc.dart';
 import 'data/user_repository.dart';
@@ -40,6 +41,8 @@ class MyApp extends StatelessWidget {
         '/splash': (context) => const SplashScreen(),
         '/': (context) => const GirisSayfasi(),
         '/kayit': (context) => const KayitSayfasi(),
+        '/sifre': (context) => const Sifre(),
+
         '/anasayfa': (context) => const HomePage(token: ''),
         '/profil': (context) {
           return FutureBuilder(

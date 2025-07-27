@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:http/http.dart' as http;
+import 'package:shartflix_/film_sayfasi.dart';
 import 'dart:convert';
 
 import 'bloc/film_bloc.dart';
@@ -197,17 +198,35 @@ class FilmList extends StatefulWidget {
 class _FilmListState extends State<FilmList> {
   final ScrollController _scrollController = ScrollController();
   int _selectedFilmId = 0;
+  bool _showTopList = true;
+  double _lastOffset = 0;
 
   void _setupScrollController(BuildContext context) {
     _scrollController.addListener(() {
       final bloc = context.read<FilmBloc>();
       final state = bloc.state;
 
+      // Sonsuz scroll
       if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 300 &&
           state is FilmLoadSuccess &&
           state.hasMore) {
-        bloc.add(FilmFetchRequested(page: bloc.currentPage + 1,fetchAll: true));
+        bloc.add(FilmFetchRequested(page: bloc.currentPage + 1, fetchAll: true));
       }
+
+      // Yukarı/aşağı kaydırmayı algıla
+      final currentOffset = _scrollController.offset;
+
+      if (currentOffset > _lastOffset && _showTopList) {
+        setState(() {
+          _showTopList = false;
+        });
+      } else if (currentOffset < _lastOffset && !_showTopList) {
+        setState(() {
+          _showTopList = true;
+        });
+      }
+
+      _lastOffset = currentOffset;
     });
   }
 
@@ -240,64 +259,79 @@ class _FilmListState extends State<FilmList> {
         } else if (state is FilmLoadSuccess) {
           return Column(
             children: [
-              SizedBox(
-                height: 180,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: state.films.length > 10 ? 10 : state.films.length,
-                  itemBuilder: (context, index) {
-                    final film = state.films[index];
-                    return Container(
-  width: 120,
-  margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
-  child: Column(
-    children: [
-      Expanded(
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: getImageWidget(film.posterUrl),
-              ),
-            ),
-            Positioned(
-              bottom: 4,
-              right: 4,
-              child: GestureDetector(
-                onTap: () {
-                  context.read<FilmBloc>().add(FilmToggleFavorite(film.id));
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: Colors.black54,
-                    shape: BoxShape.circle,
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                height: _showTopList ? 180 : 0,
+                child: AnimatedOpacity(
+                  opacity: _showTopList ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 300),
+                  child: SizedBox(
+                    height: 180,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: state.films.length > 10 ? 10 : state.films.length,
+                      itemBuilder: (context, index) {
+                        final film = state.films[index];
+                        return Container(
+                          width: 120,
+                          margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Stack(
+                                  children: [
+                                    Positioned.fill(
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: getImageWidget(film.posterUrl),
+                                      ),
+                                    ),
+                                    Positioned(
+                                      bottom: 4,
+                                      right: 4,
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          context.read<FilmBloc>().add(FilmToggleFavorite(film.id));
+                                          addToFavorites(film.id);
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.all(4),
+                                          decoration: const BoxDecoration(
+                                            color: Colors.black54,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(
+                                            film.isFavorite ? Icons.favorite : Icons.favorite_border,
+                                            color: film.isFavorite ? Colors.red : Colors.white,
+                                            size: 18,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                film.title,
+                                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                film.description,
+                                style: const TextStyle(color: Colors.white70, fontSize: 10),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                  child: Icon(
-                    film.isFavorite ? Icons.favorite : Icons.favorite_border,
-                    color: film.isFavorite ? Colors.red : Colors.white,
-                    size: 18,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-      const SizedBox(height: 6),
-      Text(
-        film.title,
-        style: const TextStyle(color: Colors.white, fontSize: 12),
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-        textAlign: TextAlign.center,
-      ),
-    ],
-  ),
-);
-
-                  },
                 ),
               ),
               Expanded(
@@ -311,108 +345,98 @@ class _FilmListState extends State<FilmList> {
                     childAspectRatio: 0.75,
                   ),
                   itemCount: state.films.length + (state.hasMore ? 1 : 0),
-                  
-              itemBuilder: (context, index) {
-  if (index < state.films.length) {
-    final film = state.films[index];
-    return GestureDetector(
-      onTap: () => _filmSec(film.id as int), // ✅ artık direkt string olarak veriyoruz
-      child: Card(
-        color: Colors.grey[900],
-        elevation: 4,
-        shape: RoundedRectangleBorder(
-          side: BorderSide(
-            color: film.id == _selectedFilmId
-                ? Colors.blueAccent
-                : Colors.transparent,
-            width: 2,
-          ),
-          borderRadius: BorderRadius.circular(8),
+                  itemBuilder: (context, index) {
+                    if (index < state.films.length) {
+                      final film = state.films[index];
+                      return GestureDetector(
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => FilmSayfasi(
+          title: film.title,
+          description: film.description,
+          posterUrl: film.posterUrl,
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Column(
+      ),
+    );
+  },
+  child: Container(
+    width: 120,
+    margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Stack(
             children: [
-              Expanded(
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: getImageWidget(film.posterUrl),
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 4,
-                      right: 4,
-                      child: GestureDetector(
-                        onTap: () {
-                          context
-                              .read<FilmBloc>()
-                              .add(FilmToggleFavorite(film.id)); // ✅ id string olarak kullanıldı
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: const BoxDecoration(
-                            color: Colors.black54,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            film.isFavorite ? Icons.favorite : Icons.favorite_border,
-                            color: film.isFavorite ? Colors.red : Colors.white,
-                            size: 20,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+              Positioned.fill(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: getImageWidget(film.posterUrl),
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                film.title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+              Positioned(
+                bottom: 4,
+                right: 4,
+                child: GestureDetector(
+                  onTap: () {
+                    context.read<FilmBloc>().add(FilmToggleFavorite(film.id));
+                    addToFavorites(film.id);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.black54,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      film.isFavorite ? Icons.favorite : Icons.favorite_border,
+                      color: film.isFavorite ? Colors.red : Colors.white,
+                      size: 18,
+                    ),
+                  ),
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
         ),
-      ),
-    );
-  } else {
-    return const Center(child: CircularProgressIndicator(color: Colors.white));
-  }
-},
+        const SizedBox(height: 6),
+        Text(
+          film.title,
+          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 2),
+        Text(
+          film.description,
+          style: const TextStyle(color: Colors.white70, fontSize: 10),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    ),
+  ),
+);
 
-
-
-
-
+                    } else {
+                      return const Center(child: CircularProgressIndicator(color: Colors.white));
+                    }
+                  },
                 ),
               ),
             ],
           );
         } else if (state is FilmLoadFailure) {
           return Center(
-            child: Text(
-              "Hata: ${state.error}",
-              style: const TextStyle(color: Colors.white),
-            ),
+            child: Text("Hata: ${state.error}", style: const TextStyle(color: Colors.white)),
           );
         } else {
-          return const Center(
-            child: Text(
-              "Bir şeyler ters gitti.",
-              style: TextStyle(color: Colors.white),
-            ),
-          );
+          return const Center(child: Text("Bir şeyler ters gitti.", style: TextStyle(color: Colors.white)));
         }
       },
     );
   }
 }
+
