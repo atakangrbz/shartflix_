@@ -1,5 +1,7 @@
 // Kodun geri kalani sabit, sadece favori butonuna tiklandiginda token al ve API'ye istegi gonder
 
+// Kodun geri kalani sabit, sadece favori butonuna tiklandiginda token al ve API'ye istegi gonder
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -53,7 +55,6 @@ class _AnasayfaState extends State<Anasayfa> {
     }
   }
 
-  @override
   Widget build(BuildContext context) {
     if (isLoading) {
       return const Scaffold(
@@ -63,15 +64,35 @@ class _AnasayfaState extends State<Anasayfa> {
     }
 
     return BlocProvider(
-      create: (_) => FilmBloc(repository: filmRepository)..add(FilmFetchRequested(page: 1)),
+      create: (_) => FilmBloc(repository: filmRepository)..add(FilmFetchRequested(page: 1,fetchAll: true)),
       child: Scaffold(
         backgroundColor: Colors.black,
-        appBar: AppBar(
-          title: const Text("Film Listesi"),
-          backgroundColor: Colors.black87,
-          elevation: 0,
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            Positioned.fill(
+              child: Image.asset(
+                'assets/images/SinFlixSplash.png',
+                fit: BoxFit.cover,
+              ),
+            ),
+            Container(color: Colors.black.withOpacity(0.6)),
+            Column(
+              children: [
+                AppBar(
+                  title: const Text(
+                    "Anasayfa",
+                    style: TextStyle(color: Colors.red),
+                  ),
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                  automaticallyImplyLeading: false,
+                ),
+                const Expanded(child: FilmList()),
+              ],
+            ),
+          ],
         ),
-        body: const FilmList(),
       ),
     );
   }
@@ -114,6 +135,8 @@ Widget getImageWidget(String? url) {
       ],
     );
   }
+
+  url = url.replaceFirst('http://', 'https://'); // URL düzeltildi
 
   final lowerUrl = url.toLowerCase();
 
@@ -161,6 +184,9 @@ Widget getImageWidget(String? url) {
   );
 }
 
+// FilmList sınıfında herhangi bir düzenleme yapılmasına gerek kalmadı çünkü getImageWidget() içindeki URL düzeltmesi tüm kullanımı etkiler.
+
+
 class FilmList extends StatefulWidget {
   const FilmList({super.key});
 
@@ -180,7 +206,7 @@ class _FilmListState extends State<FilmList> {
       if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 300 &&
           state is FilmLoadSuccess &&
           state.hasMore) {
-        bloc.add(FilmFetchRequested(page: bloc.currentPage + 1));
+        bloc.add(FilmFetchRequested(page: bloc.currentPage + 1,fetchAll: true));
       }
     });
   }

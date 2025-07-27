@@ -5,6 +5,8 @@ import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 import 'dart:convert';
 
+import 'package:shared_preferences/shared_preferences.dart' show SharedPreferences;
+
 class Fotograf extends StatefulWidget {
   const Fotograf({super.key});
 
@@ -18,62 +20,84 @@ class _FotografState extends State<Fotograf> {
   final ImagePicker _picker = ImagePicker();
 
   Future<void> _pickImage() async {
-    final pickedFile = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+  try {
+    final pickedFile = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+    );
+
     if (pickedFile != null) {
+      print("Seçilen resim yolu: ${pickedFile.path}");
       setState(() {
         _selectedImage = File(pickedFile.path);
       });
+    } else {
+      print("Hiçbir resim seçilmedi");
     }
+  } catch (e) {
+    print("Resim seçme hatası: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Görsel seçilirken hata oluştu: $e')),
+    );
   }
+}
+
 
   Future<void> _uploadPhoto() async {
-    if (_selectedImage == null) return;
+  if (_selectedImage == null) return;
 
-    setState(() {
-      _isUploading = true;
-    });
+  setState(() {
+    _isUploading = true;
+  });
 
-    try {
-      final uri = Uri.parse("https://caseapi.servicelabs.tech/user/upload_photo");
-      final request = http.MultipartRequest('POST', uri);
+  try {
+    // Token'ı SharedPreferences üzerinden al
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
 
-      // Token'ını buraya yazmayı unutma:
-      String token = "API_TOKENINIZI_BURAYA_YAZIN";
-      request.headers['Authorization'] = 'Bearer $token';
-
-      final fileName = path.basename(_selectedImage!.path);
-      request.files.add(await http.MultipartFile.fromPath('photo', _selectedImage!.path, filename: fileName));
-
-      final response = await request.send();
-
-      if (response.statusCode == 200) {
-        final respStr = await response.stream.bytesToString();
-        final respJson = jsonDecode(respStr);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Fotoğraf başarıyla yüklendi')),
-        );
-        setState(() {
-          _isUploading = false;
-          _selectedImage = null;
-        });
-        Navigator.pop(context);  // Profil sayfasına geri dön
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Yükleme başarısız: ${response.statusCode}')),
-        );
-        setState(() {
-          _isUploading = false;
-        });
-      }
-    } catch (e) {
+    if (token == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Yükleme sırasında hata oluştu: $e')),
+        const SnackBar(content: Text("Oturum süresi doldu. Lütfen tekrar giriş yapın.")),
+      );
+      setState(() => _isUploading = false);
+      return;
+    }
+
+    final uri = Uri.parse("https://caseapi.servicelabs.tech/user/upload_photo");
+    final request = http.MultipartRequest('POST', uri);
+
+    request.headers['Authorization'] = 'Bearer $token';
+
+    final fileName = path.basename(_selectedImage!.path);
+    request.files.add(await http.MultipartFile.fromPath('photo', _selectedImage!.path, filename: fileName));
+
+    final response = await request.send();
+
+    if (response.statusCode == 200) {
+      final respStr = await response.stream.bytesToString();
+      final respJson = jsonDecode(respStr);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Fotoğraf başarıyla yüklendi')),
       );
       setState(() {
         _isUploading = false;
+        _selectedImage = null;
       });
+      Navigator.pop(context); // Profil sayfasına dön
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Yükleme başarısız: ${response.statusCode}')),
+      );
+      setState(() => _isUploading = false);
     }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Yükleme sırasında hata oluştu: $e')),
+    );
+    setState(() => _isUploading = false);
   }
+}
+
 
   @override
   Widget build(BuildContext context) {

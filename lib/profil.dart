@@ -409,74 +409,74 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
                     itemCount: favoriteFilms.length,
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                      childAspectRatio: 0.65,
+                      mainAxisSpacing: 10,
+                      crossAxisSpacing: 10,
+                      childAspectRatio: 0.50,
                     ),
                     itemBuilder: (context, index) {
-                      final rawFilm = favoriteFilms[index];
-                      final film = rawFilm['movie'] ?? rawFilm;
+  final film = favoriteFilms[index]; // direkt olarak kullan
 
-                      final imageUrl = (film['posterUrl'] ?? '').toString().replaceFirst("http://", "https://");
-                      final filmTitle = film['title'] ?? film['name'] ?? film['original_title'] ?? 'Başlık yok';
-                      final filmStudio = film['studio'] ?? 'Bilinmiyor';
+  final imageUrl = (film['Poster'] ?? '').toString().replaceFirst("http://", "https://");
+  final filmTitle = film['Title'] ?? 'Başlık yok';
+  final filmDescription = film['Plot'] ?? 'Açıklama yok';
 
-                      return GestureDetector(
-                        onTap: () {
-                          toggleFavorite(film['id'].toString());
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade900,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              ClipRRect(
-                                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                                child: imageUrl.isNotEmpty
-                                    ? Image.network(
-                                        imageUrl,
-                                        width: double.infinity,
-                                        height: 160,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stackTrace) =>
-                                            const Icon(Icons.broken_image, color: Colors.grey, size: 60),
-                                      )
-                                    : const Icon(Icons.broken_image, color: Colors.grey, size: 60),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Text(
-                                  filmTitle,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                                child: Text(
-                                  "Stüdyo: $filmStudio",
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
-                                ),
-                              ),
-                              const Spacer(),
-                              const Padding(
-                                padding: EdgeInsets.all(8.0),
-                                child: Icon(Icons.favorite, color: Colors.red),
-                              )
-                            ],
-                          ),
-                        ),
-                      );
-                    },
+  return GestureDetector(
+    onTap: () {
+      toggleFavorite(film['id'].toString());
+    },
+    child: Container(
+      decoration: BoxDecoration(
+        color: Colors.grey.shade900,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+            child: imageUrl.isNotEmpty
+                ? Image.network(
+                    imageUrl,
+                    width: double.infinity,
+                    height: 160,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) =>
+                        const Icon(Icons.broken_image, color: Colors.grey, size: 60),
+                  )
+                : const Icon(Icons.broken_image, color: Colors.grey, size: 60),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              filmTitle,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Text(
+              filmDescription,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+            ),
+          ),
+          const Spacer(),
+          const Padding(
+            padding: EdgeInsets.all(8.0),
+            child: Icon(Icons.favorite, color: Colors.red),
+          )
+        ],
+      ),
+    ),
+  );
+}
+
                   )
           ],
         ),

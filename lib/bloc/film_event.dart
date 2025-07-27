@@ -8,7 +8,7 @@ abstract class FilmEvent extends Equatable {
 class FilmFetchRequested extends FilmEvent {
   final int page;
 
-  FilmFetchRequested({required this.page});
+  FilmFetchRequested({required this.page, required bool fetchAll});
 
   @override
   List<Object?> get props => [page];

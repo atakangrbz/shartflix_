@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shartflix_/giri%C5%9F.dart';
 
-import 'package:shartflix_/giriş.dart';
-import 'package:shartflix_/kayıt.dart';
+import 'package:shartflix_/kay%C4%B1t.dart';
 import 'package:shartflix_/home_page.dart';
 import 'package:shartflix_/profil.dart';
 import 'package:shartflix_/screens/user_profile_screen.dart';
@@ -34,9 +34,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Flutter Giriş Kayıt Uygulaması',
-      initialRoute: '/',
+      title: 'Shartflix',
+      initialRoute: '/splash',
       routes: {
+        '/splash': (context) => const SplashScreen(),
         '/': (context) => const GirisSayfasi(),
         '/kayit': (context) => const KayitSayfasi(),
         '/anasayfa': (context) => const HomePage(token: ''),
@@ -78,6 +79,7 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -89,18 +91,12 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _navigateToNext();
+    _goToLogin();
   }
 
-  Future<void> _navigateToNext() async {
-    await Future.delayed(const Duration(seconds: 5)); // 5 saniye göster
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
-    if (token != null && token.isNotEmpty) {
-      Navigator.pushReplacementNamed(context, '/anasayfa');
-    } else {
-      Navigator.pushReplacementNamed(context, '/');
-    }
+  Future<void> _goToLogin() async {
+    await Future.delayed(const Duration(seconds: 2));
+    Navigator.pushReplacementNamed(context, '/');
   }
 
   @override
@@ -109,7 +105,7 @@ class _SplashScreenState extends State<SplashScreen> {
       backgroundColor: Colors.black,
       body: Center(
         child: Image.asset(
-          'assets/SinFlixLogo.png',
+          'assets/images/SinFlixLogo.png',
           width: 160,
           height: 160,
         ),
